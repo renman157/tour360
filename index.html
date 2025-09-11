@@ -2,80 +2,108 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Peta + 360</title>
+  <title>Virtual Assessment 360°</title>
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    body { margin:0; padding:0; display:flex; height:100vh; }
-    #map { width: 40%; height: 100%; }
-    #panorama { width: 60%; height: 100%; }
+    body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; }
+    header {
+        background:#004c80;
+        color:white;
+        text-align:center;
+        padding:10px;
+        font-size:20px;
+        font-weight:bold;
+    }
+    main {
+        flex:1;
+        display:flex;
+        flex-direction:row;
+    }
+    #map { width: 25%; height: 100%; }
+    #panorama { width: 75%; height: 100%; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="panorama"></div>
+  <!-- Header Judul -->
+  <header>
+    Virtual Assessment 360° Untuk Proses Pengadaan Tanah di Lingkungan Land Operation Zona Rokan
+  </header>
 
-  <!-- Leaflet -->
+  <!-- Layout Peta + Panorama -->
+  <main>
+    <div id="map"></div>
+    <div id="panorama"></div>
+  </main>
+
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Leaflet Shapefile Plugin -->
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
   <!-- Pannellum -->
   <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
 
   <script>
     // Inisialisasi Peta
-    var map = L.map('map').setView([-7.7972, 110.3688], 14);
+    var map = L.map('map').setView([-0.507, 101.447], 13); // koordinat default
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Inisialisasi Pannellum Viewer
+    // Load shapefile batas kecamatan (batas_kecamatan.zip)
+    fetch("batas_kecamatan.zip")
+      .then(res => res.arrayBuffer())
+      .then(buf => {
+        shp(buf).then(function(geojson){
+          L.geoJSON(geojson, {
+            style: {color:"#FF0000", weight:2}
+          }).addTo(map);
+        });
+      });
+
+    // Inisialisasi Pannellum Viewer dengan 4 scene
     var viewer = pannellum.viewer('panorama', {
-        default: {
-            firstScene: "sceneA"
-        },
+        default: { firstScene: "sceneA" },
         scenes: {
             "sceneA": {
                 title: "Lokasi A",
                 type: "equirectangular",
                 panorama: "foto360a.jpg",
-                pitch: 0,
-                yaw: 0,
-                hfov: 110,
-                autoLoad: true
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
             },
             "sceneB": {
                 title: "Lokasi B",
                 type: "equirectangular",
                 panorama: "foto360b.jpg",
-                pitch: 0,
-                yaw: 0,
-                hfov: 110,
-                autoLoad: true
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
             },
             "sceneC": {
                 title: "Lokasi C",
                 type: "equirectangular",
                 panorama: "foto360c.jpg",
-                pitch: 0,
-                yaw: 0,
-                hfov: 110,
-                autoLoad: true
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
+            },
+            "sceneD": {
+                title: "Lokasi D",
+                type: "equirectangular",
+                panorama: "foto360d.jpg",
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
             }
         }
     });
 
-    // Tambahkan marker lokasi di peta
-    var lokasiA = L.marker([-7.7972, 110.3688]).addTo(map).bindPopup("Lokasi A");
-    lokasiA.on('click', function() {
-        viewer.loadScene('sceneA');
-    });
+    // Tambahkan marker lokasi
+    var lokasiA = L.marker([0.777833, 101.400333]).addTo(map).bindPopup("Lokasi A");
+    lokasiA.on('click', function() { viewer.loadScene('sceneA'); });
 
-    var lokasiB = L.marker([-7.8000, 110.3700]).addTo(map).bindPopup("Lokasi B");
-    lokasiB.on('click', function() {
-        viewer.loadScene('sceneB');
-    });
+    var lokasiB = L.marker([1.255722, 101.130778]).addTo(map).bindPopup("Lokasi B");
+    lokasiB.on('click', function() { viewer.loadScene('sceneB'); });
 
-    var lokasiC = L.marker([-7.8030, 110.3750]).addTo(map).bindPopup("Lokasi C");
-    lokasiC.on('click', function() {
-        viewer.loadScene('sceneC');
-    });
+    var lokasiC = L.marker([1.254083, 101.132306]).addTo(map).bindPopup("Lokasi C");
+    lokasiC.on('click', function() { viewer.loadScene('sceneC'); });
+
+    var lokasiD = L.marker([0.844583, 101.385000]).addTo(map).bindPopup("Lokasi D");
+    lokasiD.on('click', function() { viewer.loadScene('sceneD'); });
   </script>
 </body>
 </html>
