@@ -1,11 +1,16 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Virtual Assessment 360°</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+  <!-- Pannellum CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
+
   <style>
     body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; font-family:Arial, sans-serif; }
 
@@ -19,16 +24,6 @@
         font-weight: bold;
         letter-spacing: 0.5px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        position: relative;
-    }
-
-    /* Logo di pojok kiri atas */
-    header img {
-        position: absolute;
-        left: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        height: 40px;
     }
 
     main {
@@ -43,11 +38,11 @@
     /* RESPONSIVE MODE untuk HP */
     @media (max-width: 768px) {
         main {
-            flex-direction: column;  /* jadi kolom, bukan row */
+            flex-direction: column;
         }
         #panorama, #map {
             width: 100%;
-            height: 50vh;  /* masing-masing setengah layar */
+            height: 50vh;
             border-left: none;
             border-top: 2px solid #ccc;
         }
@@ -55,9 +50,8 @@
   </style>
 </head>
 <body>
-  <!-- Header dengan Logo Pertamina Online -->
+  <!-- Header -->
   <header>
-    <img src="https://upload.wikimedia.org/wikipedia/commons/0/0c/Pertamina_logo_2012.svg" alt="Pertamina Logo">
     Virtual Assessment 360° Untuk Proses Pengadaan Tanah di Lingkungan Land Operation Zona Rokan
   </header>
 
@@ -71,9 +65,8 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
 
-  <!-- Pannellum -->
+  <!-- Pannellum JS -->
   <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
 
   <script>
     // Inisialisasi Peta, fokus ke Indonesia
@@ -89,9 +82,10 @@
             style: {color:"#FF0000", weight:2}
           }).addTo(map);
         });
-      });
+      })
+      .catch(err => console.log("Shapefile tidak ditemukan, skip"));
 
-    // Inisialisasi Pannellum Viewer
+    // Inisialisasi Pannellum Viewer dengan beberapa scene
     var viewer = pannellum.viewer('panorama', {
         default: { firstScene: "sceneA" },
         scenes: {
