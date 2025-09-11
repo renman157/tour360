@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Peta + 360</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { margin:0; padding:0; display:flex; height:100vh; }
+    #map { width: 40%; height: 100%; }
+    #panorama { width: 60%; height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="panorama"></div>
+
+  <!-- Leaflet -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- Pannellum -->
+  <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
+
+  <script>
+    // Inisialisasi Peta
+    var map = L.map('map').setView([-7.7972, 110.3688], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Inisialisasi Pannellum Viewer
+    var viewer = pannellum.viewer('panorama', {
+        default: {
+            firstScene: "sceneA"
+        },
+        scenes: {
+            "sceneA": {
+                title: "Lokasi A",
+                type: "equirectangular",
+                panorama: "foto360a.jpg",
+                pitch: 0,
+                yaw: 0,
+                hfov: 110,
+                autoLoad: true
+            },
+            "sceneB": {
+                title: "Lokasi B",
+                type: "equirectangular",
+                panorama: "foto360b.jpg",
+                pitch: 0,
+                yaw: 0,
+                hfov: 110,
+                autoLoad: true
+            },
+            "sceneC": {
+                title: "Lokasi C",
+                type: "equirectangular",
+                panorama: "foto360c.jpg",
+                pitch: 0,
+                yaw: 0,
+                hfov: 110,
+                autoLoad: true
+            }
+        }
+    });
+
+    // Tambahkan marker lokasi di peta
+    var lokasiA = L.marker([-7.7972, 110.3688]).addTo(map).bindPopup("Lokasi A");
+    lokasiA.on('click', function() {
+        viewer.loadScene('sceneA');
+    });
+
+    var lokasiB = L.marker([-7.8000, 110.3700]).addTo(map).bindPopup("Lokasi B");
+    lokasiB.on('click', function() {
+        viewer.loadScene('sceneB');
+    });
+
+    var lokasiC = L.marker([-7.8030, 110.3750]).addTo(map).bindPopup("Lokasi C");
+    lokasiC.on('click', function() {
+        viewer.loadScene('sceneC');
+    });
+  </script>
+</body>
+</html>
