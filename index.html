@@ -14,7 +14,6 @@
   <style>
     body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; font-family:Arial, sans-serif; }
 
-    /* Header khas Pertamina */
     header {
         background: linear-gradient(90deg, #0071bb, #00a859);
         color: white;
@@ -35,7 +34,6 @@
     #map { width: 50%; height: 100%; }
     #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
 
-    /* RESPONSIVE MODE untuk HP */
     @media (max-width: 768px) {
         main {
             flex-direction: column;
@@ -50,12 +48,10 @@
   </style>
 </head>
 <body>
-  <!-- Header -->
   <header>
     Virtual Assessment 360° Untuk Proses Pengadaan Tanah di Lingkungan Land Operation Zona Rokan
   </header>
 
-  <!-- Layout Peta + Panorama -->
   <main>
     <div id="panorama"></div>
     <div id="map"></div>
@@ -69,83 +65,61 @@
   <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 
   <script>
-    // Inisialisasi Peta, fokus ke Riau
+    // Inisialisasi peta
     var map = L.map('map').setView([0.75, 101.3], 9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Load shapefile batas kecamatan (opsional)
+    // Layer batas kecamatan (langsung aktif)
+    var batasKecamatan = L.layerGroup().addTo(map);
     fetch("batas_kecamatan.zip")
       .then(res => res.arrayBuffer())
       .then(buf => {
         shp(buf).then(function(geojson){
-          L.geoJSON(geojson, {
+          var layer = L.geoJSON(geojson, {
             style: {color:"#FF0000", weight:2}
-          }).addTo(map);
+          });
+          layer.addTo(batasKecamatan);
         });
       })
       .catch(err => console.log("Shapefile tidak ditemukan, skip"));
 
-    // Inisialisasi Pannellum Viewer dengan beberapa scene
+    // Inisialisasi Pannellum
     var viewer = pannellum.viewer('panorama', {
         default: { firstScene: "sceneA", sceneFadeDuration: 1000 },
         scenes: {
-            "sceneA": {
-                title: "Lokasi A",
-                type: "equirectangular",
-                panorama: "foto360a.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            },
-            "sceneB": {
-                title: "Lokasi B",
-                type: "equirectangular",
-                panorama: "foto360b.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            },
-            "sceneC": {
-                title: "Lokasi C",
-                type: "equirectangular",
-                panorama: "foto360c.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            },
-            "sceneD": {
-                title: "Lokasi D",
-                type: "equirectangular",
-                panorama: "foto360d.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            },
-            "sceneE": {
-                title: "Lokasi E",
-                type: "equirectangular",
-                panorama: "foto360e.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            },
-            "sceneF": {
-                title: "Lokasi F",
-                type: "equirectangular",
-                panorama: "foto360f.jpg",
-                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
-            }
+            "sceneA": { title: "Pipa Air Well 5C-58", type: "equirectangular", panorama: "foto360a.jpg", autoLoad: true },
+            "sceneB": { title: "BEKA25_0007", type: "equirectangular", panorama: "foto360b.jpg", autoLoad: true },
+            "sceneC": { title: "BEKA_#71", type: "equirectangular", panorama: "foto360c.jpg", autoLoad: true },
+            "sceneD": { title: "P_MINA25_0017HW", type: "equirectangular", panorama: "foto360d.jpg", autoLoad: true },
+            "sceneE": { title: "9D-28E", type: "equirectangular", panorama: "foto360e.jpg", autoLoad: true },
+            "sceneF": { title: "KB 500", type: "equirectangular", panorama: "foto360f.jpg", autoLoad: true }
         }
     });
 
-    // Marker lokasi dengan koordinat asli
-    var lokasiA = L.marker([0.777833, 101.400333]).addTo(map).bindPopup("Lokasi A");
-    lokasiA.on('click', function() { viewer.loadScene('sceneA'); });
+    // Marker lokasi
+    var lokasiA = L.marker([0.777833, 101.400333]).bindPopup("Pipa Air Well 5C-58").on('click', function(){ viewer.loadScene('sceneA'); });
+    var lokasiB = L.marker([1.255722, 101.130778]).bindPopup("BEKA25_0007").on('click', function(){ viewer.loadScene('sceneB'); });
+    var lokasiC = L.marker([1.254083, 101.132306]).bindPopup("BEKA_#71").on('click', function(){ viewer.loadScene('sceneC'); });
+    var lokasiD = L.marker([0.844583, 101.385000]).bindPopup("P_MINA25_0017HW").on('click', function(){ viewer.loadScene('sceneD'); });
+    var lokasiE = L.marker([0.703194, 101.485667]).bindPopup("9D-28E").on('click', function(){ viewer.loadScene('sceneE'); });
+    var lokasiF = L.marker([0.684500, 101.111528]).bindPopup("KB 500").on('click', function(){ viewer.loadScene('sceneF'); });
 
-    var lokasiB = L.marker([1.255722, 101.130778]).addTo(map).bindPopup("Lokasi B");
-    lokasiB.on('click', function() { viewer.loadScene('sceneB'); });
+    // Group semua lokasi
+    var groupLokasi = L.layerGroup([lokasiA, lokasiB, lokasiC, lokasiD, lokasiE, lokasiF]).addTo(map);
 
-    var lokasiC = L.marker([1.254083, 101.132306]).addTo(map).bindPopup("Lokasi C");
-    lokasiC.on('click', function() { viewer.loadScene('sceneC'); });
+    // Control legenda
+    var baseMaps = { "OpenStreetMap": osm };
+    var overlayMaps = {
+        "Batas Kecamatan": batasKecamatan,
+        "Pipa Air Well 5C-58": lokasiA,
+        "BEKA25_0007": lokasiB,
+        "BEKA_#71": lokasiC,
+        "P_MINA25_0017HW": lokasiD,
+        "9D-28E": lokasiE,
+        "KB 500": lokasiF
+    };
 
-    var lokasiD = L.marker([0.844583, 101.385000]).addTo(map).bindPopup("Lokasi D");
-    lokasiD.on('click', function() { viewer.loadScene('sceneD'); });
-
-    var lokasiE = L.marker([0.703194, 101.485667]).addTo(map).bindPopup("Lokasi E");
-    lokasiE.on('click', function() { viewer.loadScene('sceneE'); });
-
-    var lokasiF = L.marker([0.684500, 101.111528]).addTo(map).bindPopup("Lokasi F");
-    lokasiF.on('click', function() { viewer.loadScene('sceneF'); });
+    L.control.layers(baseMaps, overlayMaps, { collapsed:false }).addTo(map);
   </script>
 </body>
 </html>
