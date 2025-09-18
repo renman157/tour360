@@ -3,20 +3,50 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Peta Virtual Assessment 360°</title>
+  <title>Virtual Assessment 360°</title>
+
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <!-- Pannellum CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
+
   <style>
-    #map {
-      height: 100vh;
-      width: 100%;
+    body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; font-family:Arial, sans-serif; }
+
+    /* Header */
+    header {
+        background: linear-gradient(90deg, #0071bb, #00a859);
+        color: white;
+        text-align: center;
+        padding: 15px 20px;
+        font-size: 18px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
 
-    /* Bar atas */
+    main { flex:1; display:flex; flex-direction:row; }
+
+    #map { width: 50%; height: 100%; }
+    #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
+
+    /* Responsive HP */
+    @media (max-width: 768px) {
+        main { flex-direction: column; }
+        #panorama, #map {
+            width: 100%;
+            height: 50vh;
+            border-left: none;
+            border-top: 2px solid #ccc;
+        }
+    }
+
+    /* Tombol kanan atas */
     .top-right-controls {
       position: absolute;
-      top: 10px;
+      top: 70px;
       right: 10px;
       display: flex;
       gap: 6px;
@@ -30,9 +60,11 @@
       font-size: 14px;
       cursor: pointer;
     }
+
+    /* Legend */
     .legend {
       position: absolute;
-      top: 50px;
+      top: 110px;
       right: 10px;
       background: white;
       padding: 10px;
@@ -45,8 +77,9 @@
     }
     .legend ul { list-style: none; padding: 0; }
     .legend li { margin: 4px 0; }
+    .legend a { text-decoration: none; color: #0071bb; }
 
-    /* Mode HP */
+    /* Legend mode HP */
     @media (max-width: 768px) {
       .legend {
         width: 95%;
@@ -61,9 +94,18 @@
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <!-- Header -->
+  <header>
+    Virtual Assessment 360° Untuk Proses Pengadaan Tanah di Lingkungan Land Operation Zona Rokan
+  </header>
 
-  <!-- Tombol bar kanan atas -->
+  <!-- Layout -->
+  <main>
+    <div id="panorama"></div>
+    <div id="map"></div>
+  </main>
+
+  <!-- Tombol di kanan atas -->
   <div class="top-right-controls">
     <button id="legendToggle">📑 Daftar Isi</button>
   </div>
@@ -75,41 +117,76 @@
     <hr>
     <h4>Lokasi</h4>
     <ul>
-      <li><a href="#" onclick="flyToMarker('a')">A : Pipa Air Well 5C-58</a></li>
-      <li><a href="#" onclick="flyToMarker('b')">B : BEKA25_0007</a></li>
-      <li><a href="#" onclick="flyToMarker('c')">C : BEKA_#71</a></li>
-      <li><a href="#" onclick="flyToMarker('d')">D : P_MINA25_0017HW</a></li>
-      <li><a href="#" onclick="flyToMarker('e')">E : 9D-28E</a></li>
-      <li><a href="#" onclick="flyToMarker('f')">F : KB 500</a></li>
+      <li><a href="#" onclick="gotoScene('a')">A : Pipa Air Well 5C-58</a></li>
+      <li><a href="#" onclick="gotoScene('b')">B : BEKA25_0007</a></li>
+      <li><a href="#" onclick="gotoScene('c')">C : BEKA_#71</a></li>
+      <li><a href="#" onclick="gotoScene('d')">D : P_MINA25_0017HW</a></li>
+      <li><a href="#" onclick="gotoScene('e')">E : 9D-28E</a></li>
+      <li><a href="#" onclick="gotoScene('f')">F : KB 500</a></li>
     </ul>
   </div>
 
+  <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
   <script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
   <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <!-- Pannellum JS -->
+  <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+
   <script>
-    // Inisialisasi peta
+    // Inisialisasi Peta
     var map = L.map('map').setView([0.7, 101.4], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Tile layer
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
+    // Tambahan control
+    L.control.fullscreen({ position: 'topleft' }).addTo(map);
+    L.Control.geocoder({ position: 'topright' }).addTo(map);
+    L.control.scale().addTo(map);
 
-    // Marker lokasi
+    // Layer batas kecamatan
+    var kecamatanLayer;
+    fetch("batas_kecamatan.zip")
+      .then(res => res.arrayBuffer())
+      .then(buf => shp(buf))
+      .then(function(geojson){
+        kecamatanLayer = L.geoJSON(geojson, {style: {color:"#FF0000", weight:2}});
+      })
+      .catch(err => console.log("Shapefile tidak ditemukan"));
+
+    document.getElementById("toggleKecamatan").addEventListener("change", function(e){
+      if (e.target.checked && kecamatanLayer) map.addLayer(kecamatanLayer);
+      else if (kecamatanLayer) map.removeLayer(kecamatanLayer);
+    });
+
+    // Pannellum Viewer
+    var viewer = pannellum.viewer('panorama', {
+      default: { firstScene: "sceneA" },
+      scenes: {
+        "sceneA": { title: "A", type: "equirectangular", panorama: "foto360a.jpg", autoLoad:true },
+        "sceneB": { title: "B", type: "equirectangular", panorama: "foto360b.jpg", autoLoad:true },
+        "sceneC": { title: "C", type: "equirectangular", panorama: "foto360c.jpg", autoLoad:true },
+        "sceneD": { title: "D", type: "equirectangular", panorama: "foto360d.jpg", autoLoad:true },
+        "sceneE": { title: "E", type: "equirectangular", panorama: "foto360e.jpg", autoLoad:true },
+        "sceneF": { title: "F", type: "equirectangular", panorama: "foto360f.jpg", autoLoad:true }
+      }
+    });
+
+    // Marker lokasi + link ke panorama
     const markers = {
-      a: L.marker([0.7032, 101.4856]).addTo(map).bindPopup("A : Pipa Air Well 5C-58"),
-      b: L.marker([0.6815, 101.4478]).addTo(map).bindPopup("B : BEKA25_0007"),
-      c: L.marker([0.7120, 101.4670]).addTo(map).bindPopup("C : BEKA_#71"),
-      d: L.marker([0.6905, 101.4589]).addTo(map).bindPopup("D : P_MINA25_0017HW"),
-      e: L.marker([0.7032, 101.4856]).addTo(map).bindPopup("E : 9D-28E"),
-      f: L.marker([0.6845, 101.1115]).addTo(map).bindPopup("F : KB 500"),
+      a: L.marker([0.777833, 101.400333]).addTo(map).bindPopup("A : Pipa Air Well 5C-58").on('click', () => viewer.loadScene('sceneA')),
+      b: L.marker([1.255722, 101.130778]).addTo(map).bindPopup("B : BEKA25_0007").on('click', () => viewer.loadScene('sceneB')),
+      c: L.marker([1.254083, 101.132306]).addTo(map).bindPopup("C : BEKA_#71").on('click', () => viewer.loadScene('sceneC')),
+      d: L.marker([0.844583, 101.385000]).addTo(map).bindPopup("D : P_MINA25_0017HW").on('click', () => viewer.loadScene('sceneD')),
+      e: L.marker([0.703194, 101.485667]).addTo(map).bindPopup("E : 9D-28E").on('click', () => viewer.loadScene('sceneE')),
+      f: L.marker([0.684500, 101.111500]).addTo(map).bindPopup("F : KB 500").on('click', () => viewer.loadScene('sceneF'))
     };
 
-    // Fungsi flyTo marker
-    function flyToMarker(key) {
-      map.flyTo(markers[key].getLatLng(), 16, { animate: true, duration: 1.5 });
+    // Fungsi dari Daftar Isi
+    function gotoScene(key) {
+      map.flyTo(markers[key].getLatLng(), 16, { animate:true, duration:1.5 });
       markers[key].openPopup();
+      viewer.loadScene("scene" + key.toUpperCase());
     }
 
     // Tombol legenda
@@ -117,21 +194,6 @@
       const box = document.getElementById("legendBox");
       box.style.display = (box.style.display === "block") ? "none" : "block";
     };
-
-    // Layer tambahan (contoh batas kecamatan)
-    var kecamatanLayer = L.geoJSON(null); // isi dengan data GeoJSON nanti
-    document.getElementById("toggleKecamatan").addEventListener("change", function(e) {
-      if (e.target.checked) {
-        map.addLayer(kecamatanLayer);
-      } else {
-        map.removeLayer(kecamatanLayer);
-      }
-    });
-
-    // Control tambahan
-    L.control.fullscreen({ position: 'topleft' }).addTo(map);
-    L.Control.geocoder({ position: 'topright' }).addTo(map);
-    L.control.scale().addTo(map); // skala
   </script>
 </body>
 </html>
