@@ -30,19 +30,26 @@
     }
 
     main { flex:1; display:flex; flex-direction:row; }
-    #map { width: 50%; height: 100%; }
+    #map { width: 50%; height: 100%; position:relative; }
     #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
 
-    /* Legend Dropdown */
+    /* Tombol legend */
     .legend-toggle {
         position: absolute;
-        top: 80px;
+        top: 10px;
         right: 10px;
         z-index: 1000;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
     .legend {
         position: absolute;
-        top: 120px;
+        top: 50px;
         right: 10px;
         background: white;
         padding: 10px;
@@ -77,26 +84,26 @@
 
   <main>
     <div id="panorama"></div>
-    <div id="map"></div>
+    <div id="map">
+      <!-- Tombol Legend -->
+      <button class="legend-toggle">📑 Daftar Isi</button>
+      <div class="legend" id="legendBox">
+        <span class="legend-close" onclick="document.getElementById('legendBox').style.display='none'">×</span>
+        <h4>Layer</h4>
+        <label><input type="checkbox" id="toggleKecamatan" checked> Batas Kecamatan</label>
+        <hr>
+        <h4>Lokasi</h4>
+        <ul style="padding-left:15px; margin:0;">
+          <li>A : Pipa Air Well 5C-58</li>
+          <li>B : BEKA25_0007</li>
+          <li>C : BEKA_#71</li>
+          <li>D : P_MINA25_0017HW</li>
+          <li>E : 9D-28E</li>
+          <li>F : KB 500</li>
+        </ul>
+      </div>
+    </div>
   </main>
-
-  <!-- Tombol Legend -->
-  <button class="legend-toggle">📑 Daftar Isi</button>
-  <div class="legend" id="legendBox">
-    <span class="legend-close" onclick="document.getElementById('legendBox').style.display='none'">×</span>
-    <h4>Layer</h4>
-    <label><input type="checkbox" id="toggleKecamatan" checked> Batas Kecamatan</label>
-    <hr>
-    <h4>Lokasi</h4>
-    <ul style="padding-left:15px; margin:0;">
-      <li>A : Pipa Air Well 5C-58</li>
-      <li>B : BEKA25_0007</li>
-      <li>C : BEKA_#71</li>
-      <li>D : P_MINA25_0017HW</li>
-      <li>E : 9D-28E</li>
-      <li>F : KB 500</li>
-    </ul>
-  </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -110,7 +117,6 @@
   <script>
     // Inisialisasi Peta
     var map = L.map('map', { fullscreenControl: true }).setView([0.8, 101.3], 10);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Scale Bar
@@ -133,8 +139,8 @@
       .catch(err => console.log("Shapefile tidak ditemukan, skip"));
 
     document.getElementById("toggleKecamatan").addEventListener("change", function(e){
-      if (this.checked) { map.addLayer(kecamatanLayer); }
-      else { map.removeLayer(kecamatanLayer); }
+      if (this.checked && kecamatanLayer) { map.addLayer(kecamatanLayer); }
+      else if (kecamatanLayer) { map.removeLayer(kecamatanLayer); }
     });
 
     // Pannellum Viewer
@@ -181,16 +187,35 @@
     });
 
     // Geolocation
-    map.locate({setView: false});
     var userMarker;
-    function onLocationFound(e) {
+    function locateUser() {
+      map.locate({setView: true, maxZoom: 16});
+    }
+    map.on('locationfound', function(e) {
       if (!userMarker) {
         userMarker = L.marker(e.latlng).addTo(map).bindPopup("📍 Lokasi Anda");
       } else {
         userMarker.setLatLng(e.latlng);
       }
+      userMarker.openPopup();
+    });
+
+    // Tambah tombol geolokasi manual
+    L.control.locate = function(opts) {
+      var control = L.control({position: 'topleft'});
+      control.onAdd = function () {
+        var btn = L.DomUtil.create('button', 'leaflet-bar');
+        btn.innerHTML = "📍";
+        btn.style.width = "30px";
+        btn.style.height = "30px";
+        btn.style.fontSize = "16px";
+        btn.style.cursor = "pointer";
+        btn.onclick = locateUser;
+        return btn;
+      };
+      return control;
     }
-    map.on('locationfound', onLocationFound);
+    L.control.locate().addTo(map);
   </script>
 </body>
 </html>
