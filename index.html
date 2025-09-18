@@ -29,15 +29,56 @@
         flex:1;
         display:flex;
         flex-direction:row;
+        position:relative;
     }
 
     #map { width: 50%; height: 100%; }
     #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
 
+    /* Tombol toggle legenda */
+    .legend-toggle {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+        background: #0071bb;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* Panel legenda */
+    .legend-panel {
+        position: absolute;
+        top: 50px;
+        left: 10px;
+        z-index: 1000;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 10px;
+        width: 200px;
+        max-height: 60%;
+        overflow-y: auto;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: none;
+    }
+    .legend-panel h4 {
+        margin: 0 0 5px 0;
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .legend-panel label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 13px;
+    }
+
     @media (max-width: 768px) {
-        main {
-            flex-direction: column;
-        }
+        main { flex-direction: column; }
         #panorama, #map {
             width: 100%;
             height: 50vh;
@@ -55,6 +96,20 @@
   <main>
     <div id="panorama"></div>
     <div id="map"></div>
+
+    <!-- Tombol & Panel Legenda -->
+    <div class="legend-toggle" onclick="toggleLegend()">Legenda</div>
+    <div class="legend-panel" id="legendPanel">
+      <h4>Layer</h4>
+      <label><input type="checkbox" id="chkBatas" checked> Batas Kecamatan</label>
+      <h4>Lokasi</h4>
+      <label><input type="checkbox" id="chkA" checked> Pipa Air Well 5C-58</label>
+      <label><input type="checkbox" id="chkB" checked> BEKA25_0007</label>
+      <label><input type="checkbox" id="chkC" checked> BEKA_#71</label>
+      <label><input type="checkbox" id="chkD" checked> P_MINA25_0017HW</label>
+      <label><input type="checkbox" id="chkE" checked> 9D-28E</label>
+      <label><input type="checkbox" id="chkF" checked> KB 500</label>
+    </div>
   </main>
 
   <!-- Leaflet JS -->
@@ -65,19 +120,23 @@
   <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 
   <script>
+    // Toggle legenda
+    function toggleLegend() {
+      var panel = document.getElementById("legendPanel");
+      panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
+    }
+
     // Inisialisasi peta
     var map = L.map('map').setView([0.75, 101.3], 9);
     var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // Layer batas kecamatan (langsung aktif)
+    // Layer batas kecamatan
     var batasKecamatan = L.layerGroup().addTo(map);
     fetch("batas_kecamatan.zip")
       .then(res => res.arrayBuffer())
       .then(buf => {
         shp(buf).then(function(geojson){
-          var layer = L.geoJSON(geojson, {
-            style: {color:"#FF0000", weight:2}
-          });
+          var layer = L.geoJSON(geojson, { style: {color:"#FF0000", weight:2} });
           layer.addTo(batasKecamatan);
         });
       })
@@ -97,29 +156,21 @@
     });
 
     // Marker lokasi
-    var lokasiA = L.marker([0.777833, 101.400333]).bindPopup("Pipa Air Well 5C-58").on('click', function(){ viewer.loadScene('sceneA'); });
-    var lokasiB = L.marker([1.255722, 101.130778]).bindPopup("BEKA25_0007").on('click', function(){ viewer.loadScene('sceneB'); });
-    var lokasiC = L.marker([1.254083, 101.132306]).bindPopup("BEKA_#71").on('click', function(){ viewer.loadScene('sceneC'); });
-    var lokasiD = L.marker([0.844583, 101.385000]).bindPopup("P_MINA25_0017HW").on('click', function(){ viewer.loadScene('sceneD'); });
-    var lokasiE = L.marker([0.703194, 101.485667]).bindPopup("9D-28E").on('click', function(){ viewer.loadScene('sceneE'); });
-    var lokasiF = L.marker([0.684500, 101.111528]).bindPopup("KB 500").on('click', function(){ viewer.loadScene('sceneF'); });
+    var lokasiA = L.marker([0.777833, 101.400333]).bindPopup("Pipa Air Well 5C-58").on('click', function(){ viewer.loadScene('sceneA'); }).addTo(map);
+    var lokasiB = L.marker([1.255722, 101.130778]).bindPopup("BEKA25_0007").on('click', function(){ viewer.loadScene('sceneB'); }).addTo(map);
+    var lokasiC = L.marker([1.254083, 101.132306]).bindPopup("BEKA_#71").on('click', function(){ viewer.loadScene('sceneC'); }).addTo(map);
+    var lokasiD = L.marker([0.844583, 101.385000]).bindPopup("P_MINA25_0017HW").on('click', function(){ viewer.loadScene('sceneD'); }).addTo(map);
+    var lokasiE = L.marker([0.703194, 101.485667]).bindPopup("9D-28E").on('click', function(){ viewer.loadScene('sceneE'); }).addTo(map);
+    var lokasiF = L.marker([0.684500, 101.111528]).bindPopup("KB 500").on('click', function(){ viewer.loadScene('sceneF'); }).addTo(map);
 
-    // Group semua lokasi
-    var groupLokasi = L.layerGroup([lokasiA, lokasiB, lokasiC, lokasiD, lokasiE, lokasiF]).addTo(map);
-
-    // Control legenda
-    var baseMaps = { "OpenStreetMap": osm };
-    var overlayMaps = {
-        "Batas Kecamatan": batasKecamatan,
-        "Pipa Air Well 5C-58": lokasiA,
-        "BEKA25_0007": lokasiB,
-        "BEKA_#71": lokasiC,
-        "P_MINA25_0017HW": lokasiD,
-        "9D-28E": lokasiE,
-        "KB 500": lokasiF
-    };
-
-    L.control.layers(baseMaps, overlayMaps, { collapsed:false }).addTo(map);
+    // Event checkbox
+    document.getElementById("chkBatas").addEventListener("change", function(e){ if(e.target.checked){ batasKecamatan.addTo(map);} else { map.removeLayer(batasKecamatan);} });
+    document.getElementById("chkA").addEventListener("change", function(e){ e.target.checked ? lokasiA.addTo(map) : map.removeLayer(lokasiA); });
+    document.getElementById("chkB").addEventListener("change", function(e){ e.target.checked ? lokasiB.addTo(map) : map.removeLayer(lokasiB); });
+    document.getElementById("chkC").addEventListener("change", function(e){ e.target.checked ? lokasiC.addTo(map) : map.removeLayer(lokasiC); });
+    document.getElementById("chkD").addEventListener("change", function(e){ e.target.checked ? lokasiD.addTo(map) : map.removeLayer(lokasiD); });
+    document.getElementById("chkE").addEventListener("change", function(e){ e.target.checked ? lokasiE.addTo(map) : map.removeLayer(lokasiE); });
+    document.getElementById("chkF").addEventListener("change", function(e){ e.target.checked ? lokasiF.addTo(map) : map.removeLayer(lokasiF); });
   </script>
 </body>
 </html>
