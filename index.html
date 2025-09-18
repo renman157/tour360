@@ -1,187 +1,343 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <title>Virtual Assessment 360°</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Virtual Assessment 360° - Tour</title>
 
-  <!-- Leaflet -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <!-- Pannellum -->
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+  <!-- Fullscreen control CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css" />
+  <!-- Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <!-- Pannellum CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
 
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-
+    /* Layout: header + split view */
+    body { margin:0; font-family: Arial, sans-serif; height:100vh; display:flex; flex-direction:column; }
     header {
-      background: linear-gradient(to right, #0077b6, #00b4d8);
-      color: white;
-      text-align: center;
-      padding: 10px;
-      font-size: 18px;
-      font-weight: bold;
+      background: linear-gradient(90deg, #0071bb, #00a859);
+      color: #fff; text-align:center; padding:12px 16px; font-weight:700;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
+    main { flex:1; display:flex; height: calc(100vh - 56px); position:relative; }
 
-    #container {
-      display: flex;
-      height: calc(100% - 50px);
-    }
+    /* left = panorama, right = map */
+    #panorama { width:50%; height:100%; }
+    #map { width:50%; height:100%; }
 
-    #panorama, #map {
-      flex: 1;
-      height: 100%;
-    }
-
-    /* Tombol Daftar Isi */
-    #daftarIsiBtn {
+    /* controls container top-right (search, fullscreen, daftar isi) */
+    .controls-topright {
       position: absolute;
-      top: 65px;   /* default (HP) */
+      top: 10px;
       right: 10px;
-      z-index: 1000;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
+      display:flex;
+      gap:8px;
+      z-index:1600;
+      align-items:center;
+      pointer-events: none; /* allow Leaflet controls to remain clickable */
+    }
+    /* individual control buttons we add (Daftar Isi) */
+    .controls-topright > .btn {
+      pointer-events: auto;
+      background: #fff;
+      border:1px solid #ccc;
+      border-radius:6px;
+      padding:6px 10px;
+      font-size:14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      cursor:pointer;
     }
 
-    /* Geser tombol saat dibuka di laptop/desktop */
-    @media (min-width: 1024px) {
-      #daftarIsiBtn {
-        top: 110px;
+    /* Legend (Daftar Isi) box */
+    .legend {
+      position: absolute;
+      top: 90px;       /* <-- diturunkan supaya muncul di bawah search box */
+      right: 10px;
+      z-index:1500;
+      background:#fff;
+      border-radius:8px;
+      padding:10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+      max-width:320px;
+      display:none;
+      font-size:14px;
+    }
+    .legend h4 { margin:0 0 6px 0; font-size:15px; }
+    .legend hr { margin:8px 0; border:none; border-top:1px solid #eee; }
+    .legend ul { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+    .legend li { cursor:pointer; padding:6px; border-radius:6px; color:#0563a3; }
+    .legend li:hover { background:#f5f7fb; }
+
+    /* Toggle layout for mobile: stack panorama above map and adjust legend */
+    @media (max-width: 768px) {
+      main { flex-direction:column; }
+      #panorama, #map { width:100%; height:50vh; }
+      .legend {
+        left: 6px;
+        right: 6px;
+        top: auto;
+        bottom: 12px;
+        max-width: none;
+        display:none;
       }
+      .legend ul { flex-direction:row; flex-wrap:wrap; gap:8px; }
+      .legend li { background:#fff; color:#0563a3; border:1px solid #eee; padding:8px 10px; }
     }
 
-    /* Panel daftar isi */
-    #daftarIsiPanel {
-      position: absolute;
-      top: 110px;
-      right: 10px;
-      z-index: 999;
-      background: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      border-radius: 5px;
-      display: none;
-      max-width: 250px;
-    }
-
-    #daftarIsiPanel h4 {
-      margin: 5px 0;
-    }
-
-    #daftarIsiPanel ul {
-      padding-left: 15px;
-    }
-
-    #daftarIsiPanel ul li {
-      margin: 4px 0;
-    }
-
-    #daftarIsiPanel ul li a {
-      text-decoration: none;
-      color: #0077b6;
-      font-weight: bold;
+    /* small improvement for popup on panorama (Pannellum's overlay text) */
+    .pano-label {
+      position:absolute;
+      left:8px; bottom:8px;
+      background: rgba(0,0,0,0.5);
+      color:#fff; padding:6px 8px; border-radius:4px; font-weight:700;
+      z-index:1200;
+      font-size:13px;
     }
   </style>
 </head>
 <body>
-  <header>
-    Virtual Assessment 360° Untuk Proses Pengadaan Tanah - Zona Rokan
-  </header>
+  <header>Virtual Assessment 360° Untuk Proses Pengadaan Tanah - Zona Rokan</header>
 
-  <div id="container">
+  <main>
+    <!-- Panorama -->
     <div id="panorama"></div>
+
+    <!-- Map -->
     <div id="map"></div>
-  </div>
 
-  <!-- Tombol & Panel Daftar Isi -->
-  <button id="daftarIsiBtn">Daftar Isi</button>
-  <div id="daftarIsiPanel">
-    <h4>Layer</h4>
-    <label><input type="checkbox" id="toggleBatas"> Batas Kecamatan</label>
+    <!-- Top-right container: we keep it empty so Leaflet's geocoder & controls appear, but we'll add custom Daftar Isi -->
+    <div class="controls-topright" id="myControls">
+      <button id="legendBtn" class="btn">📑 Daftar Isi</button>
+    </div>
 
-    <h4>Lokasi</h4>
-    <ul>
-      <li><a href="#" onclick="zoomTo('A')">A : Pipa Air Well 5C-58</a></li>
-      <li><a href="#" onclick="zoomTo('B')">B : BEKA25_0007</a></li>
-      <li><a href="#" onclick="zoomTo('C')">C : BEKA_#71</a></li>
-      <li><a href="#" onclick="zoomTo('D')">D : P_MINA25_0017HW</a></li>
-      <li><a href="#" onclick="zoomTo('E')">E : 9D-28E</a></li>
-      <li><a href="#" onclick="zoomTo('F')">F : KB 500</a></li>
-    </ul>
-  </div>
+    <!-- Legend panel -->
+    <div class="legend" id="legendPanel" aria-hidden="true">
+      <h4>Layer</h4>
+      <label><input type="checkbox" id="chkKecamatan"> Batas Kecamatan</label>
+      <hr>
+      <h4>Lokasi</h4>
+      <ul id="locationList">
+        <li data-key="a">A : Pipa Air Well 5C-58</li>
+        <li data-key="b">B : BEKA25_0007</li>
+        <li data-key="c">C : BEKA_#71</li>
+        <li data-key="d">D : P_MINA25_0017HW</li>
+        <li data-key="e">E : 9D-28E</li>
+        <li data-key="f">F : KB 500</li>
+      </ul>
+    </div>
+
+    <!-- small label on panorama for current scene name -->
+    <div class="pano-label" id="panoLabel">A</div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
+  <script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 
   <script>
-    // === Pannellum ===
-    var viewer = pannellum.viewer('panorama', {
-      type: "equirectangular",
-      panorama: "foto360/a.jpg",  // ganti dengan foto default
-      autoLoad: true
-    });
+    // ---------- Initialize Leaflet map ----------
+    var map = L.map('map', { zoomControl: true }).setView([0.7, 101.4], 10);
 
-    // === Leaflet ===
-    var map = L.map('map').setView([0.72, 101.45], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Data lokasi
-    var locations = {
-      "A": { coords: [0.703194, 101.465667], foto: "foto360/a.jpg", name: "Pipa Air Well 5C-58" },
-      "B": { coords: [0.6665, 101.4468], foto: "foto360/b.jpg", name: "BEKA25_0007" },
-      "C": { coords: [0.6712, 101.4779], foto: "foto360/c.jpg", name: "BEKA_#71" },
-      "D": { coords: [0.7710, 101.4007], foto: "foto360/d.jpg", name: "P_MINA25_0017HW" },
-      "E": { coords: [0.7032, 101.4857], foto: "foto360/e.jpg", name: "9D-28E" },
-      "F": { coords: [0.6845, 101.1115], foto: "foto360/f.jpg", name: "KB 500" }
+    // Add scale and fullscreen
+    L.control.scale().addTo(map);
+    L.control.fullscreen({ position: 'topleft' }).addTo(map);
+
+    // Add geocoder (search) to top right
+    var geocoderControl = L.Control.geocoder({ position: 'topright' }).addTo(map);
+
+    // Add a small geolocate button (left)
+    L.control.locate = function(opts) {
+      var control = L.control({ position: 'topleft' });
+      control.onAdd = function () {
+        var btn = L.DomUtil.create('button', '');
+        btn.innerHTML = '📍';
+        btn.title = 'Lokasi Saya';
+        btn.style.width = '34px';
+        btn.style.height = '34px';
+        btn.style.fontSize = '16px';
+        btn.style.borderRadius = '4px';
+        btn.style.cursor = 'pointer';
+        btn.onclick = function() {
+          map.locate({ setView:true, maxZoom:16 });
+        };
+        return btn;
+      };
+      return control;
+    };
+    L.control.locate().addTo(map);
+
+    // Handle location found
+    var userMarker;
+    map.on('locationfound', function(e){
+      if (!userMarker) {
+        userMarker = L.marker(e.latlng).addTo(map).bindPopup("📍 Lokasi Anda").openPopup();
+      } else {
+        userMarker.setLatLng(e.latlng).openPopup();
+      }
+    });
+
+    // ---------- Pannellum viewer ----------
+    var viewer = pannellum.viewer('panorama', {
+      default: { firstScene: "sceneA", sceneFadeDuration: 600 },
+      scenes: {
+        "sceneA": { title: "A", type: "equirectangular", panorama: "foto360a.jpg", hfov:110 },
+        "sceneB": { title: "B", type: "equirectangular", panorama: "foto360b.jpg", hfov:110 },
+        "sceneC": { title: "C", type: "equirectangular", panorama: "foto360c.jpg", hfov:110 },
+        "sceneD": { title: "D", type: "equirectangular", panorama: "foto360d.jpg", hfov:110 },
+        "sceneE": { title: "E", type: "equirectangular", panorama: "foto360e.jpg", hfov:110 },
+        "sceneF": { title: "F", type: "equirectangular", panorama: "foto360f.jpg", hfov:110 }
+      }
+    });
+
+    // Update pano label on scene change
+    var panoLabel = document.getElementById('panoLabel');
+    viewer.on('load', function() {
+      var curr = viewer.getScene();
+      // scene names: sceneA ... sceneF -> show first char uppercase
+      var label = curr.replace('scene','').toUpperCase();
+      panoLabel.textContent = label;
+    });
+
+    // ---------- Markers + linkage to panoramas ----------
+    var markerData = {
+      a: { coords: [0.777833, 101.400333], scene: 'sceneA', name: 'Pipa Air Well 5C-58' },
+      b: { coords: [1.255722, 101.130778], scene: 'sceneB', name: 'BEKA25_0007' },
+      c: { coords: [1.254083, 101.132306], scene: 'sceneC', name: 'BEKA_#71' },
+      d: { coords: [0.844583, 101.385000], scene: 'sceneD', name: 'P_MINA25_0017HW' },
+      e: { coords: [0.703194, 101.485667], scene: 'sceneE', name: '9D-28E' },
+      f: { coords: [0.684500, 101.111500], scene: 'sceneF', name: 'KB 500' }
     };
 
-    window.markers = {};
-    for (let id in locations) {
-      let loc = locations[id];
-      let marker = L.marker(loc.coords).addTo(map).bindPopup(id + " : " + loc.name);
-      marker.on('click', function () {
-        viewer.loadScene(id, { panorama: loc.foto });
+    var markers = {};
+    var iconDefault = L.icon({ iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', iconSize:[28,28], iconAnchor:[14,28] });
+
+    for (var k in markerData) {
+      (function(key){
+        var d = markerData[key];
+        var m = L.marker(d.coords, {icon: iconDefault}).addTo(map)
+          .bindPopup("<b>" + d.name + "</b><br>" + d.coords[0].toFixed(6) + ", " + d.coords[1].toFixed(6));
+        m.on('click', function(){
+          // open panorama scene when marker clicked
+          viewer.loadScene(d.scene);
+          // show label on pano
+          panoLabel.textContent = key.toUpperCase();
+        });
+        markers[key] = m;
+      })(k);
+    }
+
+    // ---------- Legend / Daftar Isi behaviors ----------
+    var legendBtn = document.getElementById('legendBtn');
+    var legendPanel = document.getElementById('legendPanel');
+    var chkKec = document.getElementById('chkKecamatan');
+    var locationList = document.getElementById('locationList');
+
+    legendBtn.addEventListener('click', function(e){
+      // toggle visibility
+      legendPanel.style.display = (legendPanel.style.display === 'block') ? 'none' : 'block';
+    });
+
+    // click on each li -> fly to marker + open popup + change pano
+    locationList.querySelectorAll('li').forEach(function(li){
+      li.addEventListener('click', function(){
+        var key = this.getAttribute('data-key');
+        if (!key) return;
+        var m = markers[key];
+        if (m) {
+          map.flyTo(m.getLatLng(), 16, {animate:true, duration:1.2});
+          m.openPopup();
+          // switch panorama
+          var scene = markerData[key].scene;
+          viewer.loadScene(scene);
+          // update label
+          panoLabel.textContent = key.toUpperCase();
+          // close legend on mobile for clarity
+          if (window.innerWidth <= 768) legendPanel.style.display = 'none';
+        }
       });
-      window.markers[id] = marker;
-    }
+    });
 
-    // Fungsi zoom dari daftar isi
-    function zoomTo(id) {
-      if (window.markers[id]) {
-        map.setView(window.markers[id].getLatLng(), 16);
-        window.markers[id].openPopup();
-        viewer.loadScene(id, { panorama: locations[id].foto });
+    // Toggle Batas Kecamatan: attempt to load shapefile `batas_kecamatan.zip` via shpjs
+    var kecamatanLayer = null;
+    fetch('batas_kecamatan.zip').then(function(r){
+      if (!r.ok) throw new Error('not found');
+      return r.arrayBuffer();
+    }).then(function(buf){
+      return shp(buf);
+    }).then(function(geojson){
+      kecamatanLayer = L.geoJSON(geojson, { style:{ color:'#d9534f', weight:2, fillOpacity:0.12 } });
+      // do not auto-add; only add when checkbox is checked
+      if (chkKec.checked) kecamatanLayer.addTo(map);
+    }).catch(function(){
+      // fallback: create a dummy polygon for demo so toggle still visible
+      var demoPoly = {
+        "type":"Feature",
+        "geometry":{"type":"Polygon","coordinates":[[
+          [101.2,0.6],[101.7,0.6],[101.7,0.9],[101.2,0.9],[101.2,0.6]
+        ]]}
+      };
+      kecamatanLayer = L.geoJSON(demoPoly, { style:{ color:'#d9534f', weight:2, fillOpacity:0.08 } });
+      if (chkKec.checked) kecamatanLayer.addTo(map);
+      console.log('batas_kecamatan.zip tidak ditemukan. Menggunakan demo polygon.');
+    });
+
+    chkKec.addEventListener('change', function(){
+      if (!kecamatanLayer) return;
+      if (this.checked) map.addLayer(kecamatanLayer); else map.removeLayer(kecamatanLayer);
+    });
+
+    // close legend if click outside (nice UX)
+    document.addEventListener('click', function(evt){
+      var isClickInside = legendPanel.contains(evt.target) || legendBtn.contains(evt.target);
+      if (!isClickInside && legendPanel.style.display === 'block') {
+        legendPanel.style.display = 'none';
+      }
+    });
+
+    // ensure legend position slightly lower than geocoder: if geocoder element exists, compute its bbox and set legend top
+    function adjustLegendUnderControls() {
+      try {
+        // geocoder control lives in .leaflet-control-container; find rightmost control's bottom
+        var container = map.getContainer().querySelector('.leaflet-top.leaflet-right');
+        if (container) {
+          var rect = container.getBoundingClientRect();
+          // set legend top to rect.bottom + 8 relative to map container
+          var mapRect = map.getContainer().getBoundingClientRect();
+          var topPx = (rect.bottom - mapRect.top) + 8;
+          // but cap minimal value
+          if (topPx < 50) topPx = 50;
+          legendPanel.style.top = topPx + 'px';
+          // also move legendBtn a bit down
+          var btnTop = topPx - 40;
+          if (btnTop < 8) btnTop = 8;
+          document.querySelector('.controls-topright').style.top = btnTop + 'px';
+        }
+      } catch (e) {
+        // ignore
       }
     }
 
-    // === Toggle daftar isi ===
-    document.getElementById('daftarIsiBtn').addEventListener('click', function () {
-      var panel = document.getElementById('daftarIsiPanel');
-      panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
+    // adjust after map and controls render
+    setTimeout(adjustLegendUnderControls, 800);
+    window.addEventListener('resize', adjustLegendUnderControls);
+
+    // when panorama loads a scene programmatically, update label
+    viewer.on('scenechange', function() {
+      var s = viewer.getScene();
+      var letter = (s.replace('scene','') || 'A').toUpperCase();
+      panoLabel.textContent = letter;
     });
 
-    // === Layer batas kecamatan (contoh geojson sederhana) ===
-    var batasKecamatan = L.geoJSON(null, {
-      style: { color: "red", weight: 2 }
-    });
-
-    document.getElementById('toggleBatas').addEventListener('change', function (e) {
-      if (e.target.checked) {
-        batasKecamatan.addTo(map);
-      } else {
-        map.removeLayer(batasKecamatan);
-      }
-    });
   </script>
 </body>
 </html>
