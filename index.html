@@ -1,221 +1,69 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Virtual Assessment 360°</title>
+<!-- CSS -->
+<style>
+.legend-toggle {
+    position: absolute;
+    top: 10px;
+    right: 60px; /* digeser supaya tidak menempel dengan search */
+    z-index: 1000;
+}
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+.legend {
+    position: absolute;
+    top: 50px;
+    right: 10px;
+    background: white;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    z-index: 1000;
+    max-width: 250px;
+    font-size: 14px;
+    display: none;
+}
 
-  <!-- Pannellum CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
+/* Responsive mode untuk HP */
+@media (max-width: 768px) {
+  .legend {
+    width: 95%;
+    left: 2.5%;
+    right: auto;
+    top: auto;
+    bottom: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+</style>
 
-  <!-- Leaflet Extra Plugins -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<!-- HTML -->
+<button class="legend-toggle">📑 Daftar Isi</button>
+<div class="legend" id="legendBox">
+  <h4>Layer</h4>
+  <label><input type="checkbox" id="toggleKecamatan"> Batas Kecamatan</label>
+  <hr>
+  <h4>Lokasi</h4>
+  <ul>
+    <li><a href="#" onclick="flyToMarker('a')">A : Pipa Air Well 5C-58</a></li>
+    <li><a href="#" onclick="flyToMarker('b')">B : BEKA25_0007</a></li>
+    <li><a href="#" onclick="flyToMarker('c')">C : BEKA_#71</a></li>
+    <li><a href="#" onclick="flyToMarker('d')">D : P_MINA25_0017HW</a></li>
+    <li><a href="#" onclick="flyToMarker('e')">E : 9D-28E</a></li>
+    <li><a href="#" onclick="flyToMarker('f')">F : KB 500</a></li>
+  </ul>
+</div>
 
-  <style>
-    body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; font-family:Arial, sans-serif; }
+<!-- JS -->
+<script>
+const markers = {
+  a: L.marker([0.7032, 101.4856]).addTo(map),
+  b: L.marker([0.6815, 101.4478]).addTo(map),
+  c: L.marker([0.7120, 101.4670]).addTo(map),
+  d: L.marker([0.6905, 101.4589]).addTo(map),
+  e: L.marker([0.7032, 101.4856]).addTo(map),
+  f: L.marker([0.6845, 101.1115]).addTo(map),
+};
 
-    header {
-        background: linear-gradient(90deg, #0071bb, #00a859);
-        color: white;
-        text-align: center;
-        padding: 15px 20px;
-        font-size: 18px;
-        font-weight: bold;
-        letter-spacing: 0.5px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-
-    main { flex:1; display:flex; flex-direction:row; }
-    #map { width: 50%; height: 100%; position:relative; }
-    #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
-
-    /* Tombol legend */
-    .legend-toggle {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        z-index: 1000;
-        background: white;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 6px 10px;
-        cursor: pointer;
-        font-size: 14px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .legend {
-        position: absolute;
-        top: 50px;
-        right: 10px;
-        background: white;
-        padding: 10px;
-        border-radius: 6px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-        z-index: 1000;
-        max-width: 220px;
-        font-size: 14px;
-        display: none;
-    }
-    .legend h4 { margin: 0 0 5px; font-size: 14px; }
-    .legend-close {
-        float: right;
-        cursor: pointer;
-        font-weight: bold;
-        color: #666;
-    }
-    .legend input { margin-right: 5px; }
-
-    /* RESPONSIVE MODE untuk HP */
-    @media (max-width: 768px) {
-        main { flex-direction: column; }
-        #panorama, #map { width: 100%; height: 50vh; border-left: none; border-top: 2px solid #ccc; }
-        .legend { font-size: 12px; max-width: 180px; }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    Virtual Assessment 360° Untuk Proses Pengadaan Tanah di Lingkungan Land Operation Zona Rokan
-  </header>
-
-  <main>
-    <div id="panorama"></div>
-    <div id="map">
-      <!-- Tombol Legend -->
-      <button class="legend-toggle">📑 Daftar Isi</button>
-      <div class="legend" id="legendBox">
-        <span class="legend-close" onclick="document.getElementById('legendBox').style.display='none'">×</span>
-        <h4>Layer</h4>
-        <label><input type="checkbox" id="toggleKecamatan" checked> Batas Kecamatan</label>
-        <hr>
-        <h4>Lokasi</h4>
-        <ul style="padding-left:15px; margin:0;">
-          <li>A : Pipa Air Well 5C-58</li>
-          <li>B : BEKA25_0007</li>
-          <li>C : BEKA_#71</li>
-          <li>D : P_MINA25_0017HW</li>
-          <li>E : 9D-28E</li>
-          <li>F : KB 500</li>
-        </ul>
-      </div>
-    </div>
-  </main>
-
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
-  <script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-
-  <!-- Pannellum JS -->
-  <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
-
-  <script>
-    // Inisialisasi Peta
-    var map = L.map('map', { fullscreenControl: true }).setView([0.8, 101.3], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-    // Scale Bar
-    L.control.scale().addTo(map);
-
-    // Search box
-    L.Control.geocoder().addTo(map);
-
-    // Layer Kecamatan
-    var kecamatanLayer;
-    fetch("batas_kecamatan.zip")
-      .then(res => res.arrayBuffer())
-      .then(buf => {
-        shp(buf).then(function(geojson){
-          kecamatanLayer = L.geoJSON(geojson, {
-            style: {color:"#FF0000", weight:2}
-          }).addTo(map);
-        });
-      })
-      .catch(err => console.log("Shapefile tidak ditemukan, skip"));
-
-    document.getElementById("toggleKecamatan").addEventListener("change", function(e){
-      if (this.checked && kecamatanLayer) { map.addLayer(kecamatanLayer); }
-      else if (kecamatanLayer) { map.removeLayer(kecamatanLayer); }
-    });
-
-    // Pannellum Viewer
-    var viewer = pannellum.viewer('panorama', {
-      default: { firstScene: "sceneA" },
-      scenes: {
-        "sceneA": { title:"Pipa Air Well 5C-58", type:"equirectangular", panorama:"foto360a.jpg", autoLoad:true },
-        "sceneB": { title:"BEKA25_0007", type:"equirectangular", panorama:"foto360b.jpg", autoLoad:true },
-        "sceneC": { title:"BEKA_#71", type:"equirectangular", panorama:"foto360c.jpg", autoLoad:true },
-        "sceneD": { title:"P_MINA25_0017HW", type:"equirectangular", panorama:"foto360d.jpg", autoLoad:true },
-        "sceneE": { title:"9D-28E", type:"equirectangular", panorama:"foto360e.jpg", autoLoad:true },
-        "sceneF": { title:"KB 500", type:"equirectangular", panorama:"foto360f.jpg", autoLoad:true }
-      }
-    });
-
-    // Custom Icon
-    var sumurIcon = L.icon({
-      iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
-      iconSize: [28, 28],
-      iconAnchor: [14, 28],
-      popupAnchor: [0, -28]
-    });
-
-    // Marker Lokasi
-    var lokasi = [
-      {coord:[0.777833,101.400333], scene:'sceneA', name:"Pipa Air Well 5C-58"},
-      {coord:[1.255722,101.130778], scene:'sceneB', name:"BEKA25_0007"},
-      {coord:[1.254083,101.132306], scene:'sceneC', name:"BEKA_#71"},
-      {coord:[0.844583,101.385000], scene:'sceneD', name:"P_MINA25_0017HW"},
-      {coord:[0.703194,101.485667], scene:'sceneE', name:"9D-28E"},
-      {coord:[0.684500,101.111528], scene:'sceneF', name:"KB 500"}
-    ];
-
-    lokasi.forEach(l => {
-      var m = L.marker(l.coord, {icon: sumurIcon}).addTo(map)
-        .bindPopup("<b>"+l.name+"</b><br>Koordinat: "+l.coord[0]+", "+l.coord[1]);
-      m.on('click', function(){ viewer.loadScene(l.scene); });
-    });
-
-    // Legend toggle
-    document.querySelector(".legend-toggle").addEventListener("click", function(){
-      var box = document.getElementById("legendBox");
-      box.style.display = (box.style.display === "block") ? "none" : "block";
-    });
-
-    // Geolocation
-    var userMarker;
-    function locateUser() {
-      map.locate({setView: true, maxZoom: 16});
-    }
-    map.on('locationfound', function(e) {
-      if (!userMarker) {
-        userMarker = L.marker(e.latlng).addTo(map).bindPopup("📍 Lokasi Anda");
-      } else {
-        userMarker.setLatLng(e.latlng);
-      }
-      userMarker.openPopup();
-    });
-
-    // Tambah tombol geolokasi manual
-    L.control.locate = function(opts) {
-      var control = L.control({position: 'topleft'});
-      control.onAdd = function () {
-        var btn = L.DomUtil.create('button', 'leaflet-bar');
-        btn.innerHTML = "📍";
-        btn.style.width = "30px";
-        btn.style.height = "30px";
-        btn.style.fontSize = "16px";
-        btn.style.cursor = "pointer";
-        btn.onclick = locateUser;
-        return btn;
-      };
-      return control;
-    }
-    L.control.locate().addTo(map);
-  </script>
-</body>
-</html>
+function flyToMarker(key) {
+  map.flyTo(markers[key].getLatLng(), 16, { animate: true, duration: 1.5 });
+}
+</script>
