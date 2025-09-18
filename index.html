@@ -1,50 +1,40 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8">
-  <title>Virtual Assessment 360°</title>
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Assessment 360°</title>
 
-  <!-- Leaflet -->
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-  <!-- Pannellum -->
-  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+  <!-- PanelLayers CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-panel-layers/dist/leaflet-panel-layers.src.css" />
+  <!-- Pannellum CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"/>
 
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-    }
-
+    body { margin:0; padding:0; display:flex; flex-direction:column; height:100vh; font-family:Arial, sans-serif; }
     header {
-      background: linear-gradient(to right, #0077b6, #00b4d8);
+      background: linear-gradient(90deg, #0071bb, #00a859);
       color: white;
       text-align: center;
-      padding: 10px;
-      font-size: 18px;
+      padding: 12px;
+      font-size: 16px;
       font-weight: bold;
+      letter-spacing: 0.5px;
     }
-
-    #container {
-      display: flex;
-      height: calc(100% - 50px);
+    main {
+      flex:1;
+      display:flex;
+      flex-direction:row;
     }
-
-    #panorama, #map {
-      flex: 1;
-      height: 100%;
-    }
+    #map { width: 50%; height: 100%; }
+    #panorama { width: 50%; height: 100%; border-left:2px solid #ccc; }
 
     /* Tombol Daftar Isi */
     #daftarIsiBtn {
       position: absolute;
-      top: 65px;   /* default (HP) */
+      top: 65px;   /* default HP */
       right: 10px;
       z-index: 1000;
       background: white;
@@ -54,20 +44,13 @@
       cursor: pointer;
     }
 
-    /* Geser tombol saat dibuka di laptop/desktop */
-    @media (min-width: 1024px) {
-      #daftarIsiBtn {
-        top: 110px;
-      }
-    }
-
     /* Panel daftar isi */
     #daftarIsiPanel {
       position: absolute;
-      top: 110px;
+      top: 110px;  /* default HP */
       right: 10px;
       z-index: 999;
-      background: white;
+      background: rgba(255,255,255,0.95);
       border: 1px solid #ccc;
       padding: 10px;
       border-radius: 5px;
@@ -75,113 +58,114 @@
       max-width: 250px;
     }
 
-    #daftarIsiPanel h4 {
-      margin: 5px 0;
+    /* Khusus untuk layar laptop/desktop */
+    @media (min-width: 1024px) {
+      #daftarIsiBtn { top: 150px; }
+      #daftarIsiPanel { top: 190px; }
     }
 
-    #daftarIsiPanel ul {
-      padding-left: 15px;
-    }
-
-    #daftarIsiPanel ul li {
-      margin: 4px 0;
-    }
-
-    #daftarIsiPanel ul li a {
-      text-decoration: none;
-      color: #0077b6;
-      font-weight: bold;
+    /* RESPONSIVE HP */
+    @media (max-width: 768px) {
+      main { flex-direction: column; }
+      #map, #panorama { width: 100%; height: 50vh; border:none; }
+      #panorama { border-top:2px solid #ccc; }
     }
   </style>
 </head>
 <body>
-  <header>
-    Virtual Assessment 360° Untuk Proses Pengadaan Tanah - Zona Rokan
-  </header>
-
-  <div id="container">
-    <div id="panorama"></div>
+  <header>Virtual Assessment 360° - Zona Rokan</header>
+  <main>
     <div id="map"></div>
-  </div>
+    <div id="panorama"></div>
+  </main>
 
-  <!-- Tombol & Panel Daftar Isi -->
+  <!-- Tombol Daftar Isi -->
   <button id="daftarIsiBtn">Daftar Isi</button>
   <div id="daftarIsiPanel">
-    <h4>Layer</h4>
-    <label><input type="checkbox" id="toggleBatas"> Batas Kecamatan</label>
-
-    <h4>Lokasi</h4>
-    <ul>
-      <li><a href="#" onclick="zoomTo('A')">A : Pipa Air Well 5C-58</a></li>
-      <li><a href="#" onclick="zoomTo('B')">B : BEKA25_0007</a></li>
-      <li><a href="#" onclick="zoomTo('C')">C : BEKA_#71</a></li>
-      <li><a href="#" onclick="zoomTo('D')">D : P_MINA25_0017HW</a></li>
-      <li><a href="#" onclick="zoomTo('E')">E : 9D-28E</a></li>
-      <li><a href="#" onclick="zoomTo('F')">F : KB 500</a></li>
-    </ul>
+    <h4>Daftar Isi</h4>
+    <div id="legendContent"></div>
   </div>
 
-  <script>
-    // === Pannellum ===
-    var viewer = pannellum.viewer('panorama', {
-      type: "equirectangular",
-      panorama: "foto360/a.jpg",  // ganti dengan foto default
-      autoLoad: true
-    });
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-panel-layers/dist/leaflet-panel-layers.src.js"></script>
+  <!-- Pannellum JS -->
+  <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 
-    // === Leaflet ===
-    var map = L.map('map').setView([0.72, 101.45], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; OpenStreetMap contributors'
+  <script>
+    // Inisialisasi peta
+    var map = L.map('map').setView([0.7, 101.45], 10);
+    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
     }).addTo(map);
 
     // Data lokasi
-    var locations = {
-      "A": { coords: [0.703194, 101.465667], foto: "foto360/a.jpg", name: "Pipa Air Well 5C-58" },
-      "B": { coords: [0.6665, 101.4468], foto: "foto360/b.jpg", name: "BEKA25_0007" },
-      "C": { coords: [0.6712, 101.4779], foto: "foto360/c.jpg", name: "BEKA_#71" },
-      "D": { coords: [0.7710, 101.4007], foto: "foto360/d.jpg", name: "P_MINA25_0017HW" },
-      "E": { coords: [0.7032, 101.4857], foto: "foto360/e.jpg", name: "9D-28E" },
-      "F": { coords: [0.6845, 101.1115], foto: "foto360/f.jpg", name: "KB 500" }
+    var lokasi = {
+      "A": { coords: [0.703194, 101.478889], name: "Pipa Air Well 5C-58", scene: "sceneA" },
+      "B": { coords: [0.689444, 101.454167], name: "BEKA25_0007", scene: "sceneB" },
+      "C": { coords: [0.694722, 101.467222], name: "BEKA_#71", scene: "sceneC" },
+      "D": { coords: [0.700833, 101.460278], name: "P_MINA25_0017HW", scene: "sceneD" },
+      "E": { coords: [0.703194, 101.485667], name: "9D-28E", scene: "sceneE" },
+      "F": { coords: [0.6845, 101.111528], name: "KB 500", scene: "sceneF" }
     };
 
+    // Pannellum viewer
+    var viewer = pannellum.viewer('panorama', {
+      default: { firstScene: "sceneA" },
+      scenes: {
+        "sceneA": { title: "Pipa Air Well 5C-58", type: "equirectangular", panorama: "foto360a.jpg", autoLoad:true },
+        "sceneB": { title: "BEKA25_0007", type: "equirectangular", panorama: "foto360b.jpg", autoLoad:true },
+        "sceneC": { title: "BEKA_#71", type: "equirectangular", panorama: "foto360c.jpg", autoLoad:true },
+        "sceneD": { title: "P_MINA25_0017HW", type: "equirectangular", panorama: "foto360d.jpg", autoLoad:true },
+        "sceneE": { title: "9D-28E", type: "equirectangular", panorama: "foto360e.jpg", autoLoad:true },
+        "sceneF": { title: "KB 500", type: "equirectangular", panorama: "foto360f.jpg", autoLoad:true }
+      }
+    });
+
+    // Marker
     window.markers = {};
-    for (let id in locations) {
-      let loc = locations[id];
-      let marker = L.marker(loc.coords).addTo(map).bindPopup(id + " : " + loc.name);
-      marker.on('click', function () {
-        viewer.loadScene(id, { panorama: loc.foto });
-      });
-      window.markers[id] = marker;
+    for (var k in lokasi) {
+      var m = L.marker(lokasi[k].coords).addTo(map).bindPopup(lokasi[k].name);
+      window.markers[k] = m;
+      (function(key){
+        m.on('click', function(){ viewer.loadScene(lokasi[key].scene); });
+      })(k);
     }
 
-    // Fungsi zoom dari daftar isi
+    // PanelLayers
+    var baseLayers = [{ group: "Base Maps", layers: [{ name: "OpenStreetMap", layer: osm }] }];
+    var overLayers = [{ group: "Lokasi", layers: Object.keys(window.markers).map(k => ({ name: lokasi[k].name, layer: window.markers[k] })) }];
+    var panelLayers = new L.Control.PanelLayers(baseLayers, overLayers, { collapsibleGroups:true });
+    map.addControl(panelLayers);
+
+    // Tombol Daftar Isi toggle
+    document.getElementById('daftarIsiBtn').onclick = function() {
+      var panel = document.getElementById('daftarIsiPanel');
+      panel.style.display = (panel.style.display === "none" || panel.style.display === "") ? "block" : "none";
+    };
+
+    // Isi daftar isi manual
+    var legendContent = document.getElementById('legendContent');
+    legendContent.innerHTML = `
+      <ul>
+        <li><a href="#" onclick="zoomTo('A')">A : Pipa Air Well 5C-58</a></li>
+        <li><a href="#" onclick="zoomTo('B')">B : BEKA25_0007</a></li>
+        <li><a href="#" onclick="zoomTo('C')">C : BEKA_#71</a></li>
+        <li><a href="#" onclick="zoomTo('D')">D : P_MINA25_0017HW</a></li>
+        <li><a href="#" onclick="zoomTo('E')">E : 9D-28E</a></li>
+        <li><a href="#" onclick="zoomTo('F')">F : KB 500</a></li>
+      </ul>
+    `;
+
+    // Fungsi zoom + buka scene
     function zoomTo(id) {
       if (window.markers[id]) {
         map.setView(window.markers[id].getLatLng(), 16);
         window.markers[id].openPopup();
-        viewer.loadScene(id, { panorama: locations[id].foto });
+        viewer.loadScene(lokasi[id].scene);
       }
     }
-
-    // === Toggle daftar isi ===
-    document.getElementById('daftarIsiBtn').addEventListener('click', function () {
-      var panel = document.getElementById('daftarIsiPanel');
-      panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'block' : 'none';
-    });
-
-    // === Layer batas kecamatan (contoh geojson sederhana) ===
-    var batasKecamatan = L.geoJSON(null, {
-      style: { color: "red", weight: 2 }
-    });
-
-    document.getElementById('toggleBatas').addEventListener('change', function (e) {
-      if (e.target.checked) {
-        batasKecamatan.addTo(map);
-      } else {
-        map.removeLayer(batasKecamatan);
-      }
-    });
   </script>
 </body>
 </html>
