@@ -69,8 +69,8 @@
   <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
 
   <script>
-    // Inisialisasi Peta, fokus ke Indonesia
-    var map = L.map('map').setView([-2.5, 118], 5);
+    // Inisialisasi Peta, fokus ke Riau
+    var map = L.map('map').setView([0.75, 101.3], 9);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     // Load shapefile batas kecamatan (opsional)
@@ -87,7 +87,7 @@
 
     // Inisialisasi Pannellum Viewer dengan beberapa scene
     var viewer = pannellum.viewer('panorama', {
-        default: { firstScene: "sceneA" },
+        default: { firstScene: "sceneA", sceneFadeDuration: 1000 },
         scenes: {
             "sceneA": {
                 title: "Lokasi A",
@@ -112,6 +112,18 @@
                 type: "equirectangular",
                 panorama: "foto360d.jpg",
                 pitch: 0, yaw: 0, hfov: 110, autoLoad: true
+            },
+            "sceneE": {
+                title: "Lokasi E",
+                type: "equirectangular",
+                panorama: "foto360e.jpg",
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
+            },
+            "sceneF": {
+                title: "Lokasi F",
+                type: "equirectangular",
+                panorama: "foto360f.jpg",
+                pitch: 0, yaw: 0, hfov: 110, autoLoad: true
             }
         }
     });
@@ -128,6 +140,12 @@
 
     var lokasiD = L.marker([0.844583, 101.385000]).addTo(map).bindPopup("Lokasi D");
     lokasiD.on('click', function() { viewer.loadScene('sceneD'); });
+
+    var lokasiE = L.marker([0.703194, 101.485667]).addTo(map).bindPopup("Lokasi E");
+    lokasiE.on('click', function() { viewer.loadScene('sceneE'); });
+
+    var lokasiF = L.marker([0.684500, 101.111528]).addTo(map).bindPopup("Lokasi F");
+    lokasiF.on('click', function() { viewer.loadScene('sceneF'); });
   </script>
 </body>
 </html>
